@@ -33,3 +33,13 @@ frun() {
     fastbot-humble-gazebo:latest bash -lc \
     'ros2 launch fastbot_gazebo one_fastbot_room.launch.py'
 }
+
+startjenkins() {
+    cd ~/ros2_ws/src/ros2_ci
+    bash jenkins-infra/scripts/jenkins_bootstrap.sh
+}
+
+installplugins() {
+    cd ~/ros2_ws/src/ros2_ci
+    bash jenkins-infra/scripts/install_plugins.sh
+}
