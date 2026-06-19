@@ -8,7 +8,10 @@ RUN apt-get update && apt-get install -y \
   ros-humble-xacro \
   ros-humble-robot-state-publisher \
   ros-humble-joint-state-publisher \
+  ros-humble-tf2 \
+  ros-humble-tf2-ros \
   python3-colcon-common-extensions \
+  git \
   && rm -rf /var/lib/apt/lists/*
 
 # Create workspace
@@ -18,8 +21,11 @@ WORKDIR /ros2_ws/src
 # Copy fastbot packages into the workspace
 COPY ./fastbot /ros2_ws/src/
 
-# Build workspace
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --executor sequential"
+# Clone waypoints action server + tests
+RUN git clone https://github.com/tesarect/fastbot_waypoints.git
+
+# Build all packages — BUILD_TESTING=ON compiles GTest binaries so colcon test works without a rebuild
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd /ros2_ws && colcon build --executor sequential --cmake-args -DBUILD_TESTING=ON"
 
 # Source workspace for interactive shells
 RUN echo "source /ros2_ws/install/setup.bash" >> ~/.bashrc
