@@ -41,7 +41,7 @@ pipeline {
               mkdir -p "$ROS_LOG_DIR"
 
               echo "Launching Gazebo (headless)..."
-              ros2 launch fastbot_gazebo one_fastbot_room.launch.py headless:=1 >/dev/null 2>&1 &
+              ros2 launch fastbot_gazebo one_fastbot_room.launch.py >/dev/null 2>&1 &
 
               ODOM_TOPIC="/fastbot/odom"
 
@@ -67,7 +67,7 @@ pipeline {
 
               echo "Action server ready. Running waypoints test..."
               cd /ros2_ws
-              colcon test --packages-select fastbot_waypoints --event-handler=console_direct+ --ctest-args --timeout 300
+              colcon test --packages-select fastbot_waypoints --event-handler=console_direct+ --ctest-args "-DCTEST_TIMEOUT=300"
               colcon test-result --verbose
             '
         '''
