@@ -67,7 +67,6 @@ pipeline {
 
               echo "Action server ready. Running waypoints test..."
               cd /ros2_ws
-              // colcon test --packages-select fastbot_waypoints --event-handler=console_direct+
               colcon test --packages-select fastbot_waypoints --event-handler=console_direct+ --ctest-args --timeout 300
               colcon test-result --verbose
             '
