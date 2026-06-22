@@ -1,6 +1,14 @@
 pipeline {
   agent any
 
+  parameters {
+    choice(
+      name: 'TEST_MODE',
+      choices: ['PASS', 'FAIL'],
+      description: 'PASS: runs test_waypoints (targets 1.0,1.0 with 0.1 tolerance). FAIL: runs test_fail_waypoints (same targets but 0.01 tolerance — robot cannot meet this).'
+    )
+  }
+
   environment {
     DOCKER_IMAGE = 'fastbot-humble-gazebo'
     GAZEBO_STARTUP_TIMEOUT = '90'
@@ -11,8 +19,10 @@ pipeline {
       steps {
         script {
           env.IMAGE_TAG = (env.GIT_COMMIT ? env.GIT_COMMIT.take(7) : 'local')
+          env.TEST_BINARY = (params.TEST_MODE == 'FAIL') ? 'test_fail_waypoints' : 'test_waypoints'
         }
         echo "Using image tag: ${IMAGE_TAG}"
+        echo "Test mode: ${params.TEST_MODE} — running binary: ${TEST_BINARY}"
       }
     }
 
@@ -25,13 +35,22 @@ pipeline {
 
     stage('Run Tests') {
       steps {
-        echo " 🟢 Running tests in: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+        echo '''
+          ░████                                        ░██                                                  ░██
+        ░██                                           ░██                                                  ░██
+      ░████████ ░██░████  ░███████  ░█████████████     ░████████  ░██░████  ░██████   ░████████   ░███████  ░████████
+        ░██    ░███     ░██    ░██ ░██   ░██   ░██    ░██    ░██ ░███           ░██  ░██    ░██ ░██    ░██ ░██    ░██
+        ░██    ░██      ░██    ░██ ░██   ░██   ░██    ░██    ░██ ░██       ░███████  ░██    ░██ ░██        ░██    ░██
+        ░██    ░██      ░██    ░██ ░██   ░██   ░██    ░███   ░██ ░██      ░██   ░██  ░██    ░██ ░██    ░██ ░██    ░██
+        ░██    ░██       ░███████  ░██   ░██   ░██    ░██░█████  ░██       ░█████░██ ░██    ░██  ░███████  ░██    ░██
+        '''
         sh '''
           xhost +local:docker || true
           docker run --rm \
             -e DISPLAY=${DISPLAY} \
             -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
             -e GAZEBO_STARTUP_TIMEOUT=${GAZEBO_STARTUP_TIMEOUT} \
+            -e TEST_BINARY=${TEST_BINARY} \
             ${DOCKER_IMAGE}:${IMAGE_TAG} bash -lc '
               set -e
               source /opt/ros/humble/setup.bash
@@ -40,7 +59,7 @@ pipeline {
               export ROS_LOG_DIR=/tmp/roslog
               mkdir -p "$ROS_LOG_DIR"
 
-              echo "Launching Gazebo ..."
+              echo "Launching Gazebo..."
               ros2 launch fastbot_gazebo one_fastbot_room.launch.py >/tmp/gazebo.log 2>&1 &
 
               ODOM_TOPIC="/fastbot/odom"
@@ -64,11 +83,11 @@ pipeline {
               " || { echo "ERROR: Timeout waiting for action server ${ACTION_NAME}"; cat /tmp/action_server.log || true; exit 1; }
               echo "Action server ready."
 
-              echo "Running waypoints test (bypassing CTest timeout)..."
+              echo "Running: ${TEST_BINARY}..."
               mkdir -p /ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints
-              timeout 300 /ros2_ws/build/fastbot_waypoints/test_waypoints \
-                --gtest_output=xml:/ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml
-              echo "Tests passed."
+              timeout 300 /ros2_ws/build/fastbot_waypoints/${TEST_BINARY} \
+                --gtest_output=xml:/ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints/${TEST_BINARY}.gtest.xml
+              echo "Tests done."
             '
         '''
       }

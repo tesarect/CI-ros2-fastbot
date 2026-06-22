@@ -71,3 +71,37 @@ Jenkins will trigger automatically within 1 minute.
 - Build result: **SUCCESS**
 
 ---
+
+## Switching Between PASS and FAIL test cases
+
+The `Jenkinsfile` on the PR branch controls which test runs. Edit it directly on the PR branch and push — Jenkins auto-triggers.
+
+### To run the FAIL case
+
+On the PR branch, find this line in `Jenkinsfile`:
+
+```bash
+timeout 300 /ros2_ws/build/fastbot_waypoints/test_waypoints \
+```
+
+Change `test_waypoints` to `test_fail_waypoints`:
+
+```bash
+timeout 300 /ros2_ws/build/fastbot_waypoints/test_fail_waypoints \
+```
+
+Then commit and push to the PR branch:
+
+```bash
+git add Jenkinsfile
+git commit -m "switch to fail test case"
+git push
+```
+
+Jenkins triggers automatically → build will show **FAILURE** (robot cannot meet 0.01m tolerance).
+
+### To switch back to PASS
+
+Revert the same line back to `test_waypoints`, commit and push.
+
+---

@@ -25,7 +25,15 @@ pipeline {
 
     stage('Run Tests') {
       steps {
-        echo " 🟢 Running tests in: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+        echo '''
+          ░████                                        ░██                                                  ░██
+        ░██                                           ░██                                                  ░██
+      ░████████ ░██░████  ░███████  ░█████████████     ░████████  ░██░████  ░██████   ░████████   ░███████  ░████████
+        ░██    ░███     ░██    ░██ ░██   ░██   ░██    ░██    ░██ ░███           ░██  ░██    ░██ ░██    ░██ ░██    ░██
+        ░██    ░██      ░██    ░██ ░██   ░██   ░██    ░██    ░██ ░██       ░███████  ░██    ░██ ░██        ░██    ░██
+        ░██    ░██      ░██    ░██ ░██   ░██   ░██    ░███   ░██ ░██      ░██   ░██  ░██    ░██ ░██    ░██ ░██    ░██
+        ░██    ░██       ░███████  ░██   ░██   ░██    ░██░█████  ░██       ░█████░██ ░██    ░██  ░███████  ░██    ░██
+        '''
         sh '''
           xhost +local:docker || true
           docker run --rm \
@@ -40,7 +48,7 @@ pipeline {
               export ROS_LOG_DIR=/tmp/roslog
               mkdir -p "$ROS_LOG_DIR"
 
-              echo "Launching Gazebo ..."
+              echo "Launching Gazebo..."
               ros2 launch fastbot_gazebo one_fastbot_room.launch.py >/tmp/gazebo.log 2>&1 &
 
               ODOM_TOPIC="/fastbot/odom"
@@ -64,11 +72,16 @@ pipeline {
               " || { echo "ERROR: Timeout waiting for action server ${ACTION_NAME}"; cat /tmp/action_server.log || true; exit 1; }
               echo "Action server ready."
 
-              echo "Running waypoints test (bypassing CTest timeout)..."
-              mkdir -p /ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints
-              timeout 300 /ros2_ws/build/fastbot_waypoints/test_waypoints \
-                --gtest_output=xml:/ros2_ws/build/fastbot_waypoints/test_results/fastbot_waypoints/test_waypoints.gtest.xml
-              echo "Tests passed."
+              echo "Patching CTest timeout to 300s..."
+              sed -i "s/TIMEOUT \"60\"/TIMEOUT \"300\"/g" \
+                /ros2_ws/build/fastbot_waypoints/CTestTestfile.cmake || true
+
+              echo "Running colcon test..."
+              cd /ros2_ws
+              colcon test \
+                --packages-select fastbot_waypoints \
+                --event-handler=console_direct+
+              colcon test-result --verbose
             '
         '''
       }
