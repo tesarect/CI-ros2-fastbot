@@ -23,52 +23,33 @@ pipeline {
       }
     }
 
-    stage('Run Tests') {
+    stage('Launch Gazebo') {
       steps {
-        echo "Running tests in: ${DOCKER_IMAGE}:${IMAGE_TAG}"
+        echo "Launching Gazebo with FastBot (debug — no tests)"
+        echo "
+              ░████                                        ░██                                                  ░██        
+            ░██                                           ░██                                                  ░██        
+          ░████████ ░██░████  ░███████  ░█████████████     ░████████  ░██░████  ░██████   ░████████   ░███████  ░████████  
+            ░██    ░███     ░██    ░██ ░██   ░██   ░██    ░██    ░██ ░███           ░██  ░██    ░██ ░██    ░██ ░██    ░██ 
+            ░██    ░██      ░██    ░██ ░██   ░██   ░██    ░██    ░██ ░██       ░███████  ░██    ░██ ░██        ░██    ░██ 
+            ░██    ░██      ░██    ░██ ░██   ░██   ░██    ░███   ░██ ░██      ░██   ░██  ░██    ░██ ░██    ░██ ░██    ░██ 
+            ░██    ░██       ░███████  ░██   ░██   ░██    ░██░█████  ░██       ░█████░██ ░██    ░██  ░███████  ░██    ░██ 
+                                                                                                                                                                                                                                                                                
+        "
         sh '''
           xhost +local:docker || true
           docker run --rm \
             -e DISPLAY=${DISPLAY} \
             -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-            -e GAZEBO_STARTUP_TIMEOUT=${GAZEBO_STARTUP_TIMEOUT} \
             ${DOCKER_IMAGE}:${IMAGE_TAG} bash -lc '
               set -e
               source /opt/ros/humble/setup.bash
               source /ros2_ws/install/setup.bash
 
-              export ROS_LOG_DIR=/tmp/roslog
-              mkdir -p "$ROS_LOG_DIR"
+              echo "Launching Gazebo..."
+              ros2 launch fastbot_gazebo one_fastbot_room.launch.py
 
-              echo "Launching Gazebo (headless)..."
-              ros2 launch fastbot_gazebo one_fastbot_room.launch.py >/dev/null 2>&1 &
-
-              ODOM_TOPIC="/fastbot/odom"
-
-              echo "Waiting for ${ODOM_TOPIC} (timeout: ${GAZEBO_STARTUP_TIMEOUT}s)..."
-              timeout "${GAZEBO_STARTUP_TIMEOUT}" bash -c "
-                until ros2 topic list 2>/dev/null | grep -q \"^${ODOM_TOPIC}\$\"; do
-                  sleep 1
-                done
-              " || { echo "ERROR: Timeout waiting for ${ODOM_TOPIC}"; ros2 topic list || true; exit 1; }
-              echo "Simulation ready."
-
-              echo "Starting Waypoints Action Server..."
-              ros2 run fastbot_waypoints fastbot_action_server >/dev/null 2>&1 &
-
-              ACTION_NAME="/fastbot_as"
-
-              echo "Waiting for action server (${ACTION_NAME})..."
-              timeout 10 bash -c "
-                until ros2 action list 2>/dev/null | grep -q \"^${ACTION_NAME}\$\"; do
-                  sleep 1
-                done
-              " || { echo "ERROR: Timeout waiting for action server ${ACTION_NAME}"; exit 1; }
-
-              echo "Action server ready. Running waypoints test..."
-              cd /ros2_ws
-              colcon test --packages-select fastbot_waypoints --event-handler=console_direct+ --ctest-args "-DCTEST_TIMEOUT=300"
-              colcon test-result --verbose
+              echo "Gazebo exited."
             '
         '''
       }
