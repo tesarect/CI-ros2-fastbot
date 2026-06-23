@@ -74,34 +74,38 @@ Jenkins will trigger automatically within 1 minute.
 
 ## Switching Between PASS and FAIL test cases
 
-The `Jenkinsfile` on the PR branch controls which test runs. Edit it directly on the PR branch and push — Jenkins auto-triggers.
+Two Jenkinsfiles are available in the repo:
 
-### To run the FAIL case
+| File | Test binary | Expected result |
+|---|---|---|
+| `Jenkinsfile` | `test_waypoints` (0.1m tolerance) | SUCCESS ✅ |
+| `Jenkinsfile_failcase` | `test_fail_waypoints` (0.01m tolerance) | FAILURE ❌ |
 
-On the PR branch, find this line in `Jenkinsfile`:
+### To demonstrate the FAIL case
 
-```bash
-timeout 300 /ros2_ws/build/fastbot_waypoints/test_waypoints \
-```
+**Step 1 — Change Script Path in Jenkins GUI:**
 
-Change `test_waypoints` to `test_fail_waypoints`:
+Jenkins → job → **Configure** → **Script Path** → change from `Jenkinsfile` to `Jenkinsfile_failcase` → Save
 
-```bash
-timeout 300 /ros2_ws/build/fastbot_waypoints/test_fail_waypoints \
-```
-
-Then commit and push to the PR branch:
+**Step 2 — Trigger a build with a dummy commit on the PR branch:**
 
 ```bash
-git add Jenkinsfile
-git commit -m "switch to fail test case"
+git checkout jenkins-trigger
+git commit --allow-empty -m "trigger fail case demo"
 git push
 ```
 
 Jenkins triggers automatically → build will show **FAILURE** (robot cannot meet 0.01m tolerance).
 
-### To switch back to PASS
+### To revert to PASS
 
-Revert the same line back to `test_waypoints`, commit and push.
+Jenkins → job → **Configure** → **Script Path** → change back to `Jenkinsfile` → Save
+
+Then push another dummy commit:
+
+```bash
+git commit --allow-empty -m "revert to pass case"
+git push
+```
 
 ---
