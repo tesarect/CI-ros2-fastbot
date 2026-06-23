@@ -4,7 +4,7 @@ export SMEE_URL="https://smee.io/WOi7gUgFDGQcVAQ"
 
 alias srcrc="source ~/.bashrc"
 alias fdir="cd ~/ros2_ws/src/ros2_ci"
-alias tdir="cd ~/simulation_ws/src/ros2_ci"
+alias tdir="cd ~/simulation_ws/src/ros1_ci"
 
 # git
 cleanpull() {
