@@ -87,6 +87,8 @@ Two Jenkinsfiles are available in the repo:
 
 Jenkins → job → **Configure** → **Script Path** → change from `Jenkinsfile` to `Jenkinsfile_failcase` → Save
 
+![Fail case Jenkins config](resources/fail%20case.png)
+
 **Step 2 — Trigger a build with a dummy commit on the PR branch:**
 
 ```bash
@@ -100,6 +102,8 @@ Jenkins triggers automatically → build will show **FAILURE** (robot cannot mee
 ### To revert to PASS
 
 Jenkins → job → **Configure** → **Script Path** → change back to `Jenkinsfile` → Save
+
+![Pass case Jenkins config](resources/pass%20case(default).png)
 
 Then push another dummy commit:
 
