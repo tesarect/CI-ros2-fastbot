@@ -37,79 +37,84 @@ docker run --rm \
 
 ---
 
-## Instructions (For Evaluators)
+## Instructions (For Evaluation)
 
-### Prerequisites
-- The Construct cloud machine with ROS 2 workspace at `~/ros2_ws`
-- Docker installed
-- GitHub repo `ros2_ci` with this code
+### Start jenkins server
 
-### Step 1 — Start Jenkins
+> [ ⚠️ Warning ]
+Consider the images below as just reference. Pipeline names (Tortoisebot / Fastbot) will be interchanged in the images 
 
 ```bash
 cd ~/ros2_ws/src/ros2_ci
+
+# Install / start jenkins server
 bash jenkins-infra/scripts/jenkins_bootstrap.sh
+
+# Install Jenkins Plugins
+bash jenkins-infra/scripts/install_plugins.sh
 ```
+> [Note]
+Installations are persistent on the cloud for every session, so just starting the server might be sufficient.
 
-Get the browser URL:
-```bash
-jenkins_address
-```
 
-Open the URL in your browser and log in with the admin credentials shown by the script.
+### Switching Between Pass and Fail Test Cases Pipelines
 
-### Step 2 — Trigger a Pull Request
+Once logged into Jenkins with `admin` (_password: **admin**_) privilege, on the dashboard you can see 3 different pipelines all being disabled.
 
-On GitHub → `ros2_ci` repo → **Add file → Create new file** on a new branch → open a Pull Request against master.
+| Pipeline Name | Purpose |
+|---|---|
+| `Fastbot Waypoint ActionServer FAIL case` | Runs only Fail test case |
+| `Fastbot Waypoint ActionServer PASS case` | Runs only Pass test case |
+| `Fastbot Waypoint ActionServer ALL case` | Runs both Pass & Fail test case in 2 `stages` |
 
-Jenkins will trigger automatically within 1 minute.
 
-### Step 3 — Verify Build
+![Jenkins dashboard](resources/00-jenkins-dashboard.png)
 
-- Open Jenkins in browser → `ros2-ci` pipeline → click the PR build
-- **Console Output** shows Gazebo launching and waypoints test running
-- Build result: **SUCCESS**
+`Enable` one of the pipelines having `PASS` / `FAIL` / `ALL` case for FastBot through the config
 
----
+![Jenkins config](resources/01-jenkins-select-config.png)
+![Pipeline enable](resources/03-jenkins-enable-pipeline.png)
 
-## Switching Between PASS and FAIL test cases
+Click Apply & Save, then check if the pipeline has picked up the changes from the repo
 
-Two Jenkinsfiles are available in the repo:
+![Pipeline repo log](resources/04-jenkins-check%20repo%20responses.png)
 
-| File | Test binary | Expected result |
-|---|---|---|
-| `Jenkinsfile` | `test_waypoints` (0.1m tolerance) | SUCCESS ✅ |
-| `Jenkinsfile_failcase` | `test_fail_waypoints` (0.01m tolerance) | FAILURE ❌ |
+### Raise a `Pull Request`
+Fork this repo's `main` and add a dummy text file under the `dummies` folder inside the repo
 
-### To demonstrate the FAIL case
+![Git add a file](resources/05-git-contribute1.png)
 
-**Step 1 — Change Script Path in Jenkins GUI:**
+Commit the changes and initiate a PR
 
-Jenkins → job → **Configure** → **Script Path** → change from `Jenkinsfile` to `Jenkinsfile_failcase` → Save
+![Git commit](resources/05-git-contribute2.0.png)
 
-![Fail case Jenkins config](resources/fail%20case.png)
+![Git initiate PR](resources/05-git-contribute2.1.png)
 
-**Step 2 — Trigger a build with a dummy commit on the PR branch:**
+### Watch for Build being Triggered
+Once the PR gets accepted, you can see the pipeline getting triggered
 
-```bash
-git checkout jenkins-trigger
-git commit --allow-empty -m "trigger fail case demo"
-git push
-```
+![Git triggering pipeline](resources/05-git-contribute3.png)
 
-Jenkins triggers automatically → build will show **FAILURE** (robot cannot meet 0.01m tolerance).
+also watch the jenkins build & console
 
-### To revert to PASS
+> [Note] If the build doesn't appear on the list of builds or build history, `Refresh` the page to see if a new build appears under `pipeline > status` / `pipeline > Pull Request (tab)`
 
-Jenkins → job → **Configure** → **Script Path** → change back to `Jenkinsfile` → Save
+![Jenkins console](resources/06-jenkins%20pipeline%20getting%20started.png)
 
-![Pass case Jenkins config](resources/pass%20case(default).png)
+Look out for new builds (Note: Refresh the page if it doesn't appear)
 
-Then push another dummy commit:
+![Jenkins build start](resources/07-jenkins-watch-build.png)
+![Jenkins select console](resources/08-jenkins-builds-console.png)
+![Jenkins console output](resources/09-jenkins-console.png)
 
-```bash
-git commit --allow-empty -m "revert to pass case"
-git push
-```
+In the `console output`, when the container starts, switch to TheConstruct page to see Gazebo starting and FastBot moving towards the goal.
 
----
+In your GitHub PR page you should see the same
+
+![Git pipeline completed](resources/05-git-contribution4.png)
+
+## Closing Note
+
+once pipeline gets completed, `Disable` the pipeline
+
+![Jenkins Disable](resources/03-jenkins-enable-pipeline.png)
